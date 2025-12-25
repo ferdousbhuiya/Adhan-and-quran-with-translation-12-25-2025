@@ -11,6 +11,8 @@ A high-performance, offline-first Islamic application built with React, Tailwind
 - **Explore Nearby**: Find Masjids and Halal restaurants using AI-powered grounding.
 - **Qiblah Finder**: Real-time compass for accurate prayer direction.
 
+
+
 ## 📦 Deployment Guide
 
 ### 1. GitHub Pages (Recommended)
