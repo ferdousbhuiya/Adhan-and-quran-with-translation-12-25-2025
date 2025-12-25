@@ -33,6 +33,8 @@ This app is perfect for GitHub Pages.
 - **AI**: @google/genai (Gemini 2.5/3.0)
 - **Database**: IndexedDB (Offline Persistence)
 
+
+
 ## 🔒 Privacy & Offline Support
 Noor uses **IndexedDB** to store your downloaded Quran content and settings directly in your browser's memory. No data is sent to a server except for API calls to fetch prayer times and AI processing.
 
