@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppSettings, QuranFont } from '../types';
 import { TRANSLATIONS, ARABIC_FONTS, ADHAN_OPTIONS, PRAYER_METHODS, PRAYER_SCHOOLS, RECITERS } from '../constants';
 import { Save, Book, Volume2, Target, Compass, Bell, Type, User, Info, Smartphone, RefreshCw, Languages, PlayCircle, Calculator } from 'lucide-react';
@@ -11,6 +11,7 @@ interface SettingsProps {
 
 const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const [runtimeKey, setRuntimeKey] = useState<string>(() => { try { return localStorage.getItem('noor_runtime_gemini_key') || ''; } catch { return ''; } });
 
   const handleToggleNotify = (prayer: string) => {
     setLocalSettings({
@@ -187,6 +188,26 @@ const SettingsView: React.FC<SettingsProps> = ({ settings, onSave }) => {
               <RefreshCw size={16} className="text-slate-400 group-hover:rotate-180 transition-transform duration-500" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Local Database</span>
             </button>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 ml-4">
+            <Info size={14} /> AI & Location
+          </h2>
+          <div className="bg-white p-8 rounded-[3.5rem] border border-white shadow-premium space-y-6">
+            <p className="text-sm text-slate-500">The Smart Location Finder and AI features require a Google Generative AI / Maps API key at build time. For quick local testing you can set a runtime key below (stored in your browser only).</p>
+            <div className="grid grid-cols-1 gap-3">
+              <input value={runtimeKey} onChange={(e) => setRuntimeKey(e.target.value)} placeholder="Paste runtime key here (local only)" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none" />
+              <div className="flex gap-3">
+                <button onClick={() => { try { localStorage.setItem('noor_runtime_gemini_key', runtimeKey); alert('Runtime key saved. Refresh the page to apply.'); } catch(e){ alert('Failed to save key'); } }} className="bg-emerald-950 text-white px-4 py-3 rounded-2xl font-black text-xs">Save Runtime Key</button>
+                <button onClick={() => { setRuntimeKey(''); localStorage.removeItem('noor_runtime_gemini_key'); }} className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl font-black text-xs">Clear</button>
+                <button onClick={() => (window as any)?.aistudio?.openSelectKey?.()} className="ml-auto bg-amber-600 text-white px-4 py-3 rounded-2xl font-black text-xs">Select AI Key</button>
+              </div>
+              <div className="text-xs text-slate-400">
+                <p>Deployment hint: Add <code>VITE_GEMINI_API_KEY</code> to your CI secrets (GitHub Actions) and enable Maps/Generative AI in the Cloud Console.</p>
+              </div>
+            </div>
           </div>
         </section>
 

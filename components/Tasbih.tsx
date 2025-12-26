@@ -24,6 +24,7 @@ const Tasbih: React.FC = () => {
   const [newImage, setNewImage] = useState<string | undefined>();
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [needsAIKey, setNeedsAIKey] = useState(false);
 
   // Audio References
   const tapSound = useRef<HTMLAudioElement | null>(null);
@@ -96,7 +97,12 @@ const Tasbih: React.FC = () => {
       const transcript = event.results[0][0].transcript;
       setIsProcessingAI(true);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+          setNeedsAIKey(true);
+          throw new Error('API_KEY_MISSING');
+        }
+        const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
           contents: `Convert this Dhikr description into classical Arabic text only. Transcript: "${transcript}"`,
@@ -105,6 +111,11 @@ const Tasbih: React.FC = () => {
         if (!newTitle) setNewTitle(transcript);
       } catch (e) {
         console.error("AI Error", e);
+        if ((e as any)?.message === 'API_KEY_MISSING') {
+          if ((window as any)?.aistudio?.openSelectKey) {
+            try { await (window as any).aistudio.openSelectKey(); setNeedsAIKey(false); } catch(_){}
+          }
+        }
       } finally {
         setIsProcessingAI(false);
       }
@@ -121,7 +132,12 @@ const Tasbih: React.FC = () => {
         setNewImage(reader.result as string);
         setIsProcessingAI(true);
         try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+          if (!apiKey) {
+            setNeedsAIKey(true);
+            throw new Error('API_KEY_MISSING');
+          }
+          const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
@@ -134,6 +150,11 @@ const Tasbih: React.FC = () => {
           setNewArabic(response.text?.trim() || '');
         } catch (e) {
           console.error("AI Error", e);
+          if ((e as any)?.message === 'API_KEY_MISSING') {
+            if ((window as any)?.aistudio?.openSelectKey) {
+              try { await (window as any).aistudio.openSelectKey(); setNeedsAIKey(false); } catch(_){}
+            }
+          }
         } finally {
           setIsProcessingAI(false);
         }

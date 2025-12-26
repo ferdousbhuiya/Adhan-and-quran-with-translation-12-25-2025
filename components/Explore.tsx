@@ -12,13 +12,20 @@ const Explore: React.FC<ExploreProps> = ({ location }) => {
   const [loading, setLoading] = useState(false);
   const [queryType, setQueryType] = useState<'masjid' | 'halal'>('masjid');
 
+  const [needsAIKey, setNeedsAIKey] = useState(false);
+
   const fetchNearby = async (type: 'masjid' | 'halal') => {
     if (!location) return;
     setLoading(true);
     setQueryType(type);
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        setNeedsAIKey(true);
+        throw new Error('API_KEY_MISSING');
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const prompt = type === 'masjid' 
         ? "Find the 5 closest and best-rated Masjids or Islamic centers near me." 
         : "Find the 5 best-rated and most popular Halal restaurants nearby.";
@@ -48,11 +55,40 @@ const Explore: React.FC<ExploreProps> = ({ location }) => {
           address: c.maps.address || "Near you"
         }));
 
-      setPlaces(extractedPlaces);
-    } catch (error) {
+      if (extractedPlaces.length > 0) {
+        setPlaces(extractedPlaces);
+        return;
+      }
+
+      // If AI returned nothing, fall back to Places Nearby Search
+      await fetchPlacesFallback(type);
+    } catch (error: any) {
       console.error("Explore failed", error);
+      if (error?.message === 'API_KEY_MISSING') {
+        // Optionally prompt user to select or activate key via AI Studio integration
+        if ((window as any)?.aistudio?.openSelectKey) {
+          try { await (window as any).aistudio.openSelectKey(); setNeedsAIKey(false); } catch(e){ }
+        }
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPlacesFallback = async (type: 'masjid' | 'halal') => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) return;
+    try {
+      const locationStr = `${location!.lat},${location!.lng}`;
+      const placeType = type === 'masjid' ? 'mosque' : 'restaurant';
+      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${encodeURIComponent(locationStr)}&radius=5000&type=${placeType}&keyword=${type==='halal'?'halal':''}&key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.results) return;
+      const mapped = data.results.slice(0,5).map((p: any) => ({ title: p.name, uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${p.place_id}`, address: p.vicinity || 'Nearby' }));
+      setPlaces(mapped);
+    } catch (e) {
+      console.error('Places fallback failed', e);
     }
   };
 
@@ -93,6 +129,20 @@ const Explore: React.FC<ExploreProps> = ({ location }) => {
         </div>
       ) : (
         <div className="space-y-4">
+          {needsAIKey && (
+            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-4 text-center">
+              <p className="font-bold text-amber-700 mb-2">AI Activation Required</p>
+              <p className="text-xs text-amber-600 mb-2">To use the Smart Location Finder, select an API key from your AI Studio project or set `VITE_GEMINI_API_KEY` in your deployment secrets.</p>
+              <ul className="text-xs text-amber-600 list-disc list-inside mb-3">
+                <li>Local dev: add `.env.local` with `VITE_GEMINI_API_KEY=YOUR_KEY`</li>
+                <li>Deployed: add `VITE_GEMINI_API_KEY` in GitHub Actions secrets</li>
+              </ul>
+              <div className="flex justify-center gap-3">
+                <button onClick={() => (window as any)?.aistudio?.openSelectKey?.()} className="bg-amber-600 text-white px-4 py-2 rounded-full font-black text-xs">Select API Key</button>
+                <button onClick={() => navigator.clipboard?.writeText('VITE_GEMINI_API_KEY=YOUR_KEY') } className="bg-white border border-amber-600 text-amber-600 px-4 py-2 rounded-full font-black text-xs">Copy Env Example</button>
+              </div>
+            </div>
+          )}
           {places.length === 0 ? (
             <div className="bg-white p-10 rounded-[2.5rem] text-center border border-slate-100">
                <Search size={40} className="mx-auto text-slate-200 mb-4" />

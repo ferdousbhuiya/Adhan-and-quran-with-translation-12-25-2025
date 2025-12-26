@@ -14,10 +14,8 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
+      // Use Vite's import.meta.env for runtime config. Avoid defining legacy process.env keys.
+      define: {},
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

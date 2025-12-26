@@ -19,6 +19,16 @@ const safeParseJSON = (text: string) => {
   }
 };
 
+const getApiKey = () => {
+  // Allow a runtime override for local testing (saved in localStorage)
+  try {
+    const runtime = (localStorage && localStorage.getItem('noor_runtime_gemini_key')) || undefined;
+    return runtime || import.meta.env.VITE_GEMINI_API_KEY;
+  } catch (e) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+};
+
 export const fetchSurahs = async (): Promise<Surah[]> => {
   const localSurahs = await db.getSurahs();
   if (localSurahs.length > 0) return localSurahs;
@@ -62,7 +72,7 @@ export const fetchSurahAyahs = async (surahNumber: number, reciter: string = 'ar
 
 export const fetchLocationSuggestions = async (query: string): Promise<string[]> => {
   if (!query || query.length < 2) return [];
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("API_KEY_MISSING");
   }
@@ -92,7 +102,7 @@ export const fetchLocationSuggestions = async (query: string): Promise<string[]>
 };
 
 export const geocodeAddress = async (address: string): Promise<{ lat: number, lng: number, name: string }> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("API_KEY_MISSING");
   }
